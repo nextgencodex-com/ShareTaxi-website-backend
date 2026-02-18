@@ -44,6 +44,11 @@ app.use(cors({
 const limiter = rateLimit({
   windowMs: config.rateLimit.windowMs,
   max: config.rateLimit.max,
+  skip: (req) => {
+    // Skip rate limiting for localhost in development
+    return config.nodeEnv === 'development' && 
+           (req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1');
+  },
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again later.',

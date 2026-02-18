@@ -90,6 +90,23 @@ const getAllPersonalRides = async (req, res) => {
   }
 };
 
+const getPersonalRideById = async (req, res) => {
+  try {
+    const { rideId } = req.params;
+    const docRef = db.collection('personalbooking').doc(rideId);
+    const doc = await docRef.get();
+    
+    if (!doc.exists) {
+      return res.status(404).json({ success: false, message: 'Personal booking not found' });
+    }
+
+    res.json({ success: true, data: { booking: { id: doc.id, ...doc.data() } } });
+  } catch (error) {
+    console.error('Error fetching personal ride:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch personal ride', error: error.message });
+  }
+};
+
 const updatePersonalRide = async (req, res) => {
   try {
     const { rideId } = req.params;
@@ -134,6 +151,7 @@ const deletePersonalRide = async (req, res) => {
 module.exports = {
   createPersonalRide,
   getAllPersonalRides,
+  getPersonalRideById,
   updatePersonalRide,
   deletePersonalRide,
 };
