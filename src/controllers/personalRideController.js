@@ -27,31 +27,46 @@ const createPersonalRide = async (req, res) => {
       console.warn('Passenger find/create failed; continuing to store ride:', e && e.message ? e.message : e);
     }
 
+    // Generate readable booking ID like shared rides: PSRL-xxxxxx-timestamp
+    const generateBookingId = () => {
+      const sixDigits = Math.floor(100000 + Math.random() * 900000);
+      return `PSRL-${sixDigits}-${Date.now()}`;
+    };
+    const bookingId = generateBookingId();
+
+    // Extract pickup date from various possible locations
+    const pickupDate = raw.pickupDate || raw.date || (raw.rawPayload && (raw.rawPayload.pickupDate || raw.rawPayload.date)) || null;
+
     const ridePayload = {
       rideType: raw.rideType || 'personal',
       passengerId: passenger ? passenger.id : (raw.passengerId || raw.passenger?.id || null),
       rawPayload: raw,
       pickupLocation: raw.pickup?.location || raw.pickupLocation || null,
       destination: raw.destination?.location || raw.destination || null,
+      destinationLocation: raw.destination?.location || raw.destinationLocation || raw.destination || null,
+      pickupDate: pickupDate,
       notes: raw.notes || raw.meta?.notes || null,
       createdAt: new Date(),
+      bookingId: bookingId,
+      readableId: bookingId,
     };
 
     const sanitized = {};
     Object.entries(ridePayload).forEach(([k, v]) => { if (v !== undefined) sanitized[k] = v; });
 
-    // Persist into a dedicated collection for personal bookings
-    const docRef = await db.collection('personalbooking').add(sanitized);
-    const createdDoc = { id: docRef.id, ...sanitized };
+    // Use the generated booking ID as the document ID
+    const docRef = db.collection('personalbooking').doc(bookingId);
+    await docRef.set(sanitized);
+    const createdDoc = { id: bookingId, ...sanitized };
 
     // Optionally create a booking record that references this personal booking
     let booking = null;
     try {
-      if (docRef.id && passenger) {
-        booking = await Booking.create({ rideId: docRef.id, passengerId: passenger.id, bookingType: 'immediate' });
+      if (bookingId && passenger) {
+        booking = await Booking.create({ rideId: bookingId, passengerId: passenger.id, bookingType: 'immediate' });
       }
     } catch (bErr) {
-      console.warn('Could not create booking for personalbooking', docRef.id, bErr && bErr.message ? bErr.message : bErr);
+      console.warn('Could not create booking for personalbooking', bookingId, bErr && bErr.message ? bErr.message : bErr);
     }
 
     const rideResponse = { ...createdDoc };

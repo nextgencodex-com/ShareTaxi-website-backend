@@ -81,6 +81,44 @@ const getVehiclesByPassengerCount = async (req, res) => {
   }
 };
 
+// Get vehicles by type (personal or shared)
+const getVehiclesByType = async (req, res) => {
+  try {
+    const { type } = req.query;
+    
+    if (!type) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vehicle type is required (personal or shared)'
+      });
+    }
+
+    if (type !== 'personal' && type !== 'shared') {
+      return res.status(400).json({
+        success: false,
+        message: 'Vehicle type must be either "personal" or "shared"'
+      });
+    }
+
+    const vehicles = await Vehicle.getByType(type);
+    res.status(200).json({
+      success: true,
+      data: {
+        vehicles: vehicles,
+        count: vehicles.length,
+        type: type
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching vehicles by type:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch vehicles by type',
+      error: error.message
+    });
+  }
+};
+
 // Get a specific vehicle
 const getVehicleById = async (req, res) => {
   try {
@@ -114,20 +152,37 @@ const createVehicle = async (req, res) => {
     const {
       name,
       price,
+      ratePerKm,
       passengers,
       luggage,
       handCarry,
       image,
       features,
       gradient,
-      buttonColor
+      buttonColor,
+      vehicleType
     } = req.body;
 
     // Validate required fields
-    if (!name || !price || !passengers) {
+    if (!name || !passengers) {
       return res.status(400).json({
         success: false,
-        message: 'Name, price, and passenger capacity are required'
+        message: 'Name and passenger capacity are required'
+      });
+    }
+
+    // Validate price or ratePerKm based on vehicle type
+    const vType = vehicleType || 'shared';
+    if (vType === 'personal' && !ratePerKm) {
+      return res.status(400).json({
+        success: false,
+        message: 'Rate per KM is required for personal vehicles'
+      });
+    }
+    if (vType === 'shared' && !price) {
+      return res.status(400).json({
+        success: false,
+        message: 'Price is required for shared vehicles'
       });
     }
 
@@ -141,14 +196,16 @@ const createVehicle = async (req, res) => {
 
     const vehicleData = {
       name,
-      price,
+      price: price || null,
+      ratePerKm: ratePerKm || null,
       passengers: passengers || '4',
       luggage: luggage || '2',
       handCarry: handCarry || '2',
       image: image || '/images/default-vehicle.jpg',
       features: featuresArray,
       gradient: gradient || 'bg-gradient-to-br from-blue-400 to-blue-600',
-      buttonColor: buttonColor || 'bg-blue-600 hover:bg-blue-700'
+      buttonColor: buttonColor || 'bg-blue-600 hover:bg-blue-700',
+      vehicleType: vType
     };
 
     const newVehicle = await Vehicle.create(vehicleData);
@@ -300,6 +357,7 @@ module.exports = {
   getAllVehicles,
   getAvailableVehicles,
   getVehiclesByPassengerCount,
+  getVehiclesByType,
   getVehicleById,
   createVehicle,
   updateVehicle,
