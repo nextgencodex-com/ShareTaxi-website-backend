@@ -5,6 +5,7 @@ class Vehicle {
     this.id = data.id || null;
     this.name = data.name;
     this.price = data.price;
+    this.ratePerKm = data.ratePerKm; // For personal vehicles (rate per KM)
     this.passengers = data.passengers;
     this.luggage = data.luggage;
     this.handCarry = data.handCarry;
@@ -12,6 +13,7 @@ class Vehicle {
     this.features = data.features || [];
     this.gradient = data.gradient || 'bg-gradient-to-br from-blue-400 to-blue-600';
     this.buttonColor = data.buttonColor || 'bg-blue-600 hover:bg-blue-700';
+    this.vehicleType = data.vehicleType || 'shared'; // 'personal' or 'shared'
     this.status = data.status || 'active';
     this.createdAt = data.createdAt || new Date();
     this.isAvailable = data.isAvailable !== undefined ? data.isAvailable : true;
@@ -86,6 +88,30 @@ class Vehicle {
     } catch (error) {
       console.error('Error fetching available vehicles:', error);
       throw new Error('Failed to fetch available vehicles');
+    }
+  }
+
+  // Get vehicles by type (personal or shared)
+  static async getByType(vehicleType) {
+    try {
+      const vehiclesSnapshot = await db.collection('vehicles').get();
+      
+      const vehicles = vehiclesSnapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        .filter(vehicle => vehicle.status !== 'deleted' && vehicle.vehicleType === vehicleType)
+        .sort((a, b) => {
+          const aTime = a.createdAt?.seconds || a.createdAt?.getTime?.() || 0;
+          const bTime = b.createdAt?.seconds || b.createdAt?.getTime?.() || 0;
+          return bTime - aTime;
+        });
+
+      return vehicles;
+    } catch (error) {
+      console.error('Error fetching vehicles by type:', error);
+      throw new Error('Failed to fetch vehicles by type');
     }
   }
 
