@@ -4,6 +4,7 @@ const {
   getAllVehicles,
   getAvailableVehicles,
   getVehiclesByPassengerCount,
+  getVehiclesByType,
   getVehicleById,
   createVehicle,
   updateVehicle,
@@ -20,6 +21,9 @@ router.get('/available', getAvailableVehicles);
 
 // Search vehicles
 router.get('/search', searchVehicles);
+
+// Get vehicles by type (personal or shared)
+router.get('/by-type', getVehiclesByType);
 
 // Get vehicles by passenger count
 router.get('/by-passengers', getVehiclesByPassengerCount);
