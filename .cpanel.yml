@@ -1,0 +1,4 @@
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/sriltfwe/api.srilankawildsafari.com
+    - /bin/echo "cPanel backend deploy ready at ${DEPLOYPATH}"
